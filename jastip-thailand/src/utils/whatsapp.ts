@@ -73,6 +73,19 @@ export function generateWhatsAppMessage(
   }
   return fillTemplate(template ?? DEFAULT_WHATSAPP_TEMPLATE, data)
 }
+export function normalizeIndonesianPhone(phone: string): string {
+  const digits = (phone || '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('62')) return digits
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`
+  return `62${digits}`
+}
+
+/** Builds a wa.me click-to-chat link that opens WhatsApp with the message pre-filled. */
+export function buildWhatsAppLink(phone: string, message: string): string {
+  const normalized = normalizeIndonesianPhone(phone)
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`
+}
 
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {

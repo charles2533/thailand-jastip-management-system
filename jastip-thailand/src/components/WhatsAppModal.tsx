@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
-import { Copy } from 'lucide-react'
+import { Copy, Send } from 'lucide-react'
 import { Button, Modal } from './ui'
-import { generateWhatsAppMessage, copyToClipboard } from '../utils/whatsapp'
+import { generateWhatsAppMessage, copyToClipboard, buildWhatsAppLink } from '../utils/whatsapp'
 import { useToast } from './ToastProvider'
 import type { CustomerRow, OrderItemRow, OrderRow } from '../types/database'
 
@@ -27,6 +27,11 @@ export default function WhatsAppModal({ open, onClose, order, customer, items, t
     }
   }
 
+  function handleOpenInWhatsApp() {
+    const link = buildWhatsAppLink(customer.phone, message)
+    window.open(link, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <Modal
       open={open}
@@ -37,8 +42,11 @@ export default function WhatsAppModal({ open, onClose, order, customer, items, t
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button onClick={handleCopy}>
+          <Button variant="outline" onClick={handleCopy}>
             <Copy size={15} /> Copy Message
+          </Button>
+          <Button onClick={handleOpenInWhatsApp}>
+            <Send size={15} /> Open in WhatsApp
           </Button>
         </>
       }
@@ -47,7 +55,7 @@ export default function WhatsAppModal({ open, onClose, order, customer, items, t
         {message}
       </div>
       <p className="text-xs text-charcoal-soft mt-3">
-        This only copies the message — open WhatsApp yourself and paste it to send.
+        "Open in WhatsApp" opens the chat with {customer.name} and the message already typed in — you still tap Send yourself. Nothing is sent automatically.
       </p>
     </Modal>
   )
