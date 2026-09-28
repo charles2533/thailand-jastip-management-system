@@ -9,7 +9,8 @@ import { createOrder, getOrder, updateOrder } from '../services/orders'
 import { calculateAppliedExchangeRate, calculateItemPricing, calculateOrderTotals } from '../utils/pricing'
 import { formatIDR } from '../utils/currency'
 import { ORDER_STATUS_LABELS, ORDER_STATUS_ORDER } from '../types'
-import type { CustomerRow, DeliveryZoneRow, FeeConfiguration, OrderStatus, SettingsRow } from '../types/database'
+import type { CustomerRow, DeliveryMethod, DeliveryZoneRow, FeeConfiguration, OrderStatus, SettingsRow } from '../types/database'
+import { DELIVERY_METHODS, isZoneBased } from '../config/delivery'
 import { useToast } from '../components/ToastProvider'
 
 interface DraftItem {
@@ -54,6 +55,7 @@ export default function CreateOrder() {
 
   const [items, setItems] = useState<DraftItem[]>([newDraftItem()])
   const [deliveryZoneId, setDeliveryZoneId] = useState('')
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('kurir')
   const [deliveryFeeOverride, setDeliveryFeeOverride] = useState<number | null>(null)
   const [status, setStatus] = useState<OrderStatus>('pending')
   const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -88,6 +90,7 @@ export default function CreateOrder() {
             }))
           )
           const matchedZone = zoneList.find((z) => z.name === order.delivery_area)
+          setDeliveryMethod(order.delivery_method ?? 'kurir')
           setDeliveryZoneId(matchedZone?.id ?? '')
           if (order.delivery_fee !== order.default_delivery_fee) setDeliveryFeeOverride(order.delivery_fee)
           setStatus(order.status)
@@ -142,7 +145,8 @@ export default function CreateOrder() {
     return () => clearTimeout(handle)
   }, [customerQuery, customerMode])
 
-  const activeZone = zones.find((z) => z.id === deliveryZoneId)
+  const isKurir = isZoneBased(deliveryMethod)
+  const activeZone = isKurir ? zones.find((z) => z.id === deliveryZoneId) : undefined
   const defaultDeliveryFee = activeZone?.fee ?? 0
   const appliedDeliveryFee = deliveryFeeOverride ?? defaultDeliveryFee
 
@@ -176,7 +180,7 @@ export default function CreateOrder() {
       if (!newCustomer.phone.trim()) e.newPhone = 'Phone is required'
       if (!newCustomer.address.trim()) e.newAddress = 'Address is required'
     }
-    if (!deliveryZoneId) e.delivery = 'Select a delivery area'
+    if (isKurir && !deliveryZoneId) e.delivery = 'Select a delivery area'
     items.forEach((it, idx) => {
       if (!it.product_name.trim()) e[`item-${idx}-name`] = 'Product name required'
       if (!it.price_thb || it.price_thb <= 0) e[`item-${idx}-price`] = 'Price required'
@@ -218,6 +222,7 @@ export default function CreateOrder() {
         applied_exchange_rate: pricing.appliedRate,
         rounding_rule: pricing.roundingRule,
         fee_configuration: pricing.feeConfig,
+        delivery_method: deliveryMethod,
         delivery_area: activeZone?.name ?? null,
         default_delivery_fee: defaultDeliveryFee,
         delivery_fee: appliedDeliveryFee,
@@ -386,16 +391,25 @@ export default function CreateOrder() {
           <Card className="p-5">
             <h3 className="font-semibold text-charcoal mb-3">Delivery &amp; Status</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Select label="Delivery Area *" value={deliveryZoneId} onChange={(e) => { setDeliveryZoneId(e.target.value); setDeliveryFeeOverride(null) }} error={errors.delivery}>
-                <option value="">Select area...</option>
-                {zones.filter((z) => z.active || z.id === deliveryZoneId).map((z) => (
-                  <option key={z.id} value={z.id}>
-                    {z.name} — {formatIDR(z.fee)}
+              <Select label="Delivery Method *" value={deliveryMethod} onChange={(e) => { setDeliveryMethod(e.target.value as DeliveryMethod); setDeliveryFeeOverride(null) }}>
+                {DELIVERY_METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
                   </option>
                 ))}
               </Select>
+              {isKurir && (
+                <Select label="Delivery Area *" value={deliveryZoneId} onChange={(e) => { setDeliveryZoneId(e.target.value); setDeliveryFeeOverride(null) }} error={errors.delivery}>
+                  <option value="">Select area...</option>
+                  {zones.filter((z) => z.active || z.id === deliveryZoneId).map((z) => (
+                    <option key={z.id} value={z.id}>
+                      {z.name} — {formatIDR(z.fee)}
+                    </option>
+                  ))}
+                </Select>
+              )}
               <Input
-                label="Delivery Fee (override)"
+                label={isKurir ? 'Delivery Fee (override)' : 'Delivery Fee (sesuai tarif aplikasi)'}
                 type="number"
                 min={0}
                 value={deliveryFeeOverride ?? defaultDeliveryFee}

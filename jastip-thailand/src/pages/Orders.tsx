@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search } from 'lucide-react'
+import { ClipboardList, Plus, Search } from 'lucide-react'
 import { Button, Card, EmptyState, Input, PageLoader, Select, StatusBadge } from '../components/ui'
 import { listOrders, type OrderListItem } from '../services/orders'
 import { listDeliveryZones } from '../services/deliveryZones'
@@ -9,6 +9,10 @@ import { ORDER_STATUS_LABELS, ORDER_STATUS_ORDER } from '../types'
 import type { DeliveryZoneRow } from '../types/database'
 import { useToast } from '../components/ToastProvider'
 import { shortOrderId } from '../utils/invoice'
+import { getSettings } from '../services/settings'
+import CustomerFormModal from '../components/CustomerFormModal'
+import { DEFAULT_CUSTOMER_FORM_TEMPLATE } from '../config/customerForm'
+import { getDeliveryMethodLabel } from '../config/delivery'
 
 export default function Orders() {
   const [orders, setOrders] = useState<OrderListItem[]>([])
@@ -17,14 +21,17 @@ export default function Orders() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [area, setArea] = useState('all')
+  const [formOpen, setFormOpen] = useState(false)
+  const [formTemplate, setFormTemplate] = useState(DEFAULT_CUSTOMER_FORM_TEMPLATE)
   const { showToast } = useToast()
 
   useEffect(() => {
     async function load() {
       try {
-        const [o, z] = await Promise.all([listOrders(), listDeliveryZones()])
+        const [o, z, s] = await Promise.all([listOrders(), listDeliveryZones(), getSettings()])
         setOrders(o)
         setZones(z)
+        setFormTemplate(s.customer_form_template || DEFAULT_CUSTOMER_FORM_TEMPLATE)
       } catch (err) {
         showToast(err instanceof Error ? err.message : 'Failed to load orders', 'error')
       } finally {
@@ -61,11 +68,16 @@ export default function Orders() {
           <h1 className="text-2xl font-semibold text-charcoal">Orders</h1>
           <p className="text-sm text-charcoal-soft mt-1">{orders.length} total orders</p>
         </div>
-        <Link to="/orders/new">
-          <Button>
-            <Plus size={16} /> New Order
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setFormOpen(true)}>
+            <ClipboardList size={16} /> Customer Form
           </Button>
-        </Link>
+          <Link to="/orders/new">
+            <Button>
+              <Plus size={16} /> New Order
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -121,7 +133,7 @@ export default function Orders() {
                     <th className="px-5 py-3 font-medium">Order</th>
                     <th className="px-5 py-3 font-medium">Customer</th>
                     <th className="px-5 py-3 font-medium">Date</th>
-                    <th className="px-5 py-3 font-medium">Area</th>
+                    <th className="px-5 py-3 font-medium">Delivery</th>
                     <th className="px-5 py-3 font-medium text-right">Total</th>
                     <th className="px-5 py-3 font-medium">Status</th>
                   </tr>
@@ -140,7 +152,10 @@ export default function Orders() {
                         <p className="text-xs text-charcoal-soft">{o.customer?.phone}</p>
                       </td>
                       <td className="px-5 py-3.5 text-charcoal-soft">{new Date(o.order_date).toLocaleDateString('id-ID')}</td>
-                      <td className="px-5 py-3.5 text-charcoal-soft">{o.delivery_area ?? '—'}</td>
+                      <td className="px-5 py-3.5 text-charcoal-soft">
+                        {getDeliveryMethodLabel(o.delivery_method)}
+                        {o.delivery_area && <span className="block text-xs">{o.delivery_area}</span>}
+                      </td>
                       <td className="px-5 py-3.5 text-right font-medium text-charcoal">{formatIDR(o.grand_total)}</td>
                       <td className="px-5 py-3.5">
                         <StatusBadge status={o.status} label={ORDER_STATUS_LABELS[o.status]} />
@@ -163,7 +178,7 @@ export default function Orders() {
                     <StatusBadge status={o.status} label={ORDER_STATUS_LABELS[o.status]} />
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-charcoal-soft">{new Date(o.order_date).toLocaleDateString('id-ID')} · {o.delivery_area ?? '—'}</span>
+                    <span className="text-xs text-charcoal-soft">{new Date(o.order_date).toLocaleDateString('id-ID')} · {getDeliveryMethodLabel(o.delivery_method)}</span>
                     <span className="text-sm font-medium text-charcoal">{formatIDR(o.grand_total)}</span>
                   </div>
                 </Link>
@@ -172,6 +187,8 @@ export default function Orders() {
           </>
         )}
       </Card>
+
+      <CustomerFormModal open={formOpen} onClose={() => setFormOpen(false)} template={formTemplate} />
     </div>
   )
 }

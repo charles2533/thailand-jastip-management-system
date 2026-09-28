@@ -5,11 +5,12 @@ import { getSettings, updateSettings } from '../services/settings'
 import { createDeliveryZone, deleteDeliveryZone, listDeliveryZones, updateDeliveryZone } from '../services/deliveryZones'
 import { calculateAppliedExchangeRate, ROUNDING_RULES } from '../utils/pricing'
 import { formatIDR } from '../utils/currency'
-import { WHATSAPP_TEMPLATE_VARIABLES, generateWhatsAppMessage } from '../utils/whatsapp'
+import { WHATSAPP_TEMPLATE_VARIABLES, generateWhatsAppMessage, copyToClipboard } from '../utils/whatsapp'
+import { DEFAULT_CUSTOMER_FORM_TEMPLATE } from '../config/customerForm'
 import type { DeliveryZoneRow, FeeConfiguration, FeeTier, SettingsRow } from '../types/database'
 import { useToast } from '../components/ToastProvider'
 
-const TABS = ['Business', 'Currency', 'Jastip Fee', 'Delivery', 'WhatsApp Template'] as const
+const TABS = ['Business', 'Currency', 'Jastip Fee', 'Delivery', 'WhatsApp Template', 'Customer Form'] as const
 type Tab = (typeof TABS)[number]
 
 export default function Settings() {
@@ -64,6 +65,7 @@ export default function Settings() {
       {tab === 'Jastip Fee' && <JastipFeeTab settings={settings} onSaved={setSettings} />}
       {tab === 'Delivery' && <DeliveryTab zones={zones} onReload={load} />}
       {tab === 'WhatsApp Template' && <WhatsAppTab settings={settings} onSaved={setSettings} />}
+      {tab === 'Customer Form' && <CustomerFormTab settings={settings} onSaved={setSettings} />}
     </div>
   )
 }
@@ -311,7 +313,10 @@ function DeliveryTab({ zones, onReload }: { zones: DeliveryZoneRow[]; onReload: 
   return (
     <Card className="max-w-2xl">
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
-        <h3 className="font-semibold text-charcoal">Delivery Zones</h3>
+        <div>
+          <h3 className="font-semibold text-charcoal">Delivery Zones (Kurir)</h3>
+          <p className="text-xs text-charcoal-soft mt-0.5">Tarif zona ini dipakai untuk metode Kurir. Grab, Gojek, dan Shopee Instant diisi manual per order.</p>
+        </div>
         <Button size="sm" onClick={openCreate}>
           <Plus size={14} /> Add Zone
         </Button>
@@ -396,6 +401,7 @@ function WhatsAppTab({ settings, onSaved }: { settings: SettingsRow; onSaved: (s
     delivery_fee: 15000,
     grand_total: 300000,
     delivery_area: 'Surabaya area lainnya',
+    delivery_method: 'kurir',
     applied_exchange_rate: settings.base_exchange_rate,
   } as any
   const sampleCustomer = { name: 'Kak Dewi', address: 'Jl. Contoh No. 1, Surabaya', phone: '08123456789' } as any
@@ -436,5 +442,52 @@ function WhatsAppTab({ settings, onSaved }: { settings: SettingsRow; onSaved: (s
         <div className="bg-offwhite border border-charcoal/10 rounded-xl p-4 whitespace-pre-wrap text-sm text-charcoal">{preview}</div>
       </Card>
     </div>
+  )
+}
+
+/* ---------------- Customer Form ---------------- */
+
+function CustomerFormTab({ settings, onSaved }: { settings: SettingsRow; onSaved: (s: SettingsRow) => void }) {
+  const [template, setTemplate] = useState(settings.customer_form_template || DEFAULT_CUSTOMER_FORM_TEMPLATE)
+  const [saving, setSaving] = useState(false)
+  const { showToast } = useToast()
+
+  async function save() {
+    setSaving(true)
+    try {
+      const updated = await updateSettings(settings.id, { customer_form_template: template })
+      onSaved(updated)
+      showToast('Customer form template saved')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to save', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function copy() {
+    const ok = await copyToClipboard(template)
+    if (ok) showToast('Template copied!')
+    else showToast('Could not copy automatically', 'error')
+  }
+
+  return (
+    <Card className="p-5 max-w-2xl">
+      <p className="text-sm text-charcoal-soft mb-4">
+        Template teks untuk dikirim ke customer supaya mereka isi sendiri (produk, nama, no. telp, alamat, pilihan pengiriman). Ini hanya template — tidak otomatis masuk ke sistem.
+      </p>
+      <TextArea label="Customer Order Form" rows={22} value={template} onChange={(e) => setTemplate(e.target.value)} className="font-mono text-xs" />
+      <div className="flex flex-wrap gap-2 mt-4">
+        <Button onClick={save} loading={saving}>
+          Save Template
+        </Button>
+        <Button variant="outline" onClick={copy}>
+          Copy Template
+        </Button>
+        <Button variant="ghost" onClick={() => setTemplate(DEFAULT_CUSTOMER_FORM_TEMPLATE)}>
+          Reset to Default
+        </Button>
+      </div>
+    </Card>
   )
 }

@@ -1,5 +1,6 @@
 import type { CustomerRow, OrderItemRow, OrderRow } from '../types/database'
 import { formatIDR } from './currency'
+import { getDeliveryMethodLabel } from '../config/delivery'
 
 export const WHATSAPP_TEMPLATE_VARIABLES = [
   '{{customer_name}}',
@@ -11,6 +12,7 @@ export const WHATSAPP_TEMPLATE_VARIABLES = [
   '{{delivery_fee}}',
   '{{grand_total}}',
   '{{delivery_area}}',
+  '{{delivery_method}}',
   '{{address}}',
   '{{phone}}',
   '{{exchange_rate}}',
@@ -67,12 +69,18 @@ export function generateWhatsAppMessage(
     delivery_fee: formatIDR(order.delivery_fee),
     grand_total: formatIDR(order.grand_total),
     delivery_area: order.delivery_area ?? '-',
+    delivery_method: getDeliveryMethodLabel(order.delivery_method),
     address: customer.address,
     phone: customer.phone,
     exchange_rate: `1 THB = ${formatIDR(order.applied_exchange_rate)}`,
   }
   return fillTemplate(template ?? DEFAULT_WHATSAPP_TEMPLATE, data)
 }
+
+/**
+ * Normalizes an Indonesian phone number into the digits-only, country-code
+ * format wa.me links require (e.g. "0812-3456-789" -> "6281234567897").
+ */
 export function normalizeIndonesianPhone(phone: string): string {
   const digits = (phone || '').replace(/\D/g, '')
   if (!digits) return ''

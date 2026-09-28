@@ -85,7 +85,7 @@ export default function Calculator() {
               placeholder="1"
             />
           </div>
-          <Select label="Delivery Zone" value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
+          <Select label="Delivery Zone (Kurir)" value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
             <option value="">No delivery fee</option>
             {zones.filter((z) => z.active).map((z) => (
               <option key={z.id} value={z.id}>

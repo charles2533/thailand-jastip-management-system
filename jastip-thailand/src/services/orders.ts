@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
-import type { CustomerRow, FeeConfiguration, OrderItemRow, OrderRow, OrderStatus } from '../types/database'
+import type { CustomerRow, DeliveryMethod, FeeConfiguration, OrderItemRow, OrderRow, OrderStatus } from '../types/database'
 import { generateUniqueInvoiceNumber } from '../utils/invoice'
 
 export interface OrderListItem extends OrderRow {
@@ -100,6 +100,7 @@ export interface CreateOrderInput {
   applied_exchange_rate: number
   rounding_rule: string
   fee_configuration: FeeConfiguration
+  delivery_method: DeliveryMethod
   delivery_area: string | null
   default_delivery_fee: number
   delivery_fee: number
@@ -132,6 +133,7 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderRow> {
       fee_configuration: input.fee_configuration,
       subtotal,
       total_fee,
+      delivery_method: input.delivery_method,
       delivery_area: input.delivery_area,
       default_delivery_fee: input.default_delivery_fee,
       delivery_fee: input.delivery_fee,
@@ -175,6 +177,7 @@ export async function updateOrder(id: string, input: UpdateOrderInput): Promise<
       fee_configuration: input.fee_configuration,
       subtotal,
       total_fee,
+      delivery_method: input.delivery_method,
       delivery_area: input.delivery_area,
       default_delivery_fee: input.default_delivery_fee,
       delivery_fee: input.delivery_fee,

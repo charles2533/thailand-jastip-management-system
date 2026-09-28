@@ -74,6 +74,7 @@ Delivery: {{delivery_fee}}
 {{address}}
 
 Terima kasih sudah menggunakan Jastip Thailand kami! 🇹🇭❤️',
+  customer_form_template text,
   updated_at timestamptz not null default now()
 );
 
@@ -98,6 +99,8 @@ create table if not exists orders (
   -- financials
   subtotal numeric not null default 0,
   total_fee numeric not null default 0,
+  delivery_method text not null default 'kurir'
+    check (delivery_method in ('kurir','grab','gojek','shopee_instant')),
   delivery_area text,
   default_delivery_fee numeric not null default 0,
   delivery_fee numeric not null default 0,

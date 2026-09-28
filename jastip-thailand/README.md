@@ -77,7 +77,8 @@ You can deploy via the Netlify CLI (`netlify deploy --prod`) or by connecting th
   - `Rp300.000 – < Rp500.000` → Rp35.000/item
   - `>= Rp500.000` → 8% of item price (no cap)
   All editable in **Settings → Jastip Fee**.
-- **Delivery fee:** configurable zones in **Settings → Delivery**; the admin can override the fee per order.
+- **Delivery fee:** each order has a delivery method — **Kurir** (fee from the zones in **Settings → Delivery**, overridable per order), or **Grab / Gojek / Shopee Instant** (fee typed in manually per order).
+- **Customer order form:** **Orders → Customer Form** copies an editable text template (Settings → Customer Form) you can send to customers; it is text only, not automated.
 - **Pricing snapshot:** every order stores the exact base rate, margin, applied rate, rounding rule, and fee configuration used at creation time. Changing Settings later never changes existing orders — only new orders (or duplicated orders, which are explicitly re-priced) use the latest settings.
 
 All of this logic lives in `src/utils/pricing.ts`, `src/utils/delivery.ts`, `src/utils/currency.ts` so it's calculated identically in the Calculator, Create Order, and Order Detail.

@@ -11,6 +11,8 @@ export type OrderStatus =
   | 'completed'
   | 'cancelled'
 
+export type DeliveryMethod = 'kurir' | 'grab' | 'gojek' | 'shopee_instant'
+
 export interface FeeTier {
   label: string
   maxIdr: number | null // null = no upper bound (last tier)
@@ -55,6 +57,7 @@ export interface SettingsRow {
   rounding_rule: string
   fee_configuration: FeeConfiguration
   whatsapp_template: string
+  customer_form_template: string | null
   updated_at: string
 }
 
@@ -71,6 +74,7 @@ export interface OrderRow {
   fee_configuration: FeeConfiguration
   subtotal: number
   total_fee: number
+  delivery_method: DeliveryMethod
   delivery_area: string | null
   default_delivery_fee: number
   delivery_fee: number

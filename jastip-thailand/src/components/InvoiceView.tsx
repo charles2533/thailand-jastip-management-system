@@ -2,6 +2,7 @@ import React from 'react'
 import type { CustomerRow, OrderItemRow, OrderRow, SettingsRow } from '../types/database'
 import { formatIDR, formatTHB } from '../utils/currency'
 import { ORDER_STATUS_LABELS } from '../types'
+import { getDeliveryMethodLabel } from '../config/delivery'
 
 interface InvoiceViewProps {
   order: OrderRow
@@ -48,12 +49,11 @@ export default function InvoiceView({ order, customer, items, settings }: Invoic
         <div className="sm:text-right">
           <p className="text-xs uppercase tracking-wide text-charcoal-soft mb-1">Exchange Rate</p>
           <p className="text-sm text-charcoal">{formatTHB(1)} = {formatIDR(order.applied_exchange_rate)}</p>
-          {order.delivery_area && (
-            <>
-              <p className="text-xs uppercase tracking-wide text-charcoal-soft mt-3 mb-1">Delivery Area</p>
-              <p className="text-sm text-charcoal">{order.delivery_area}</p>
-            </>
-          )}
+          <p className="text-xs uppercase tracking-wide text-charcoal-soft mt-3 mb-1">Delivery</p>
+          <p className="text-sm text-charcoal">
+            {getDeliveryMethodLabel(order.delivery_method)}
+            {order.delivery_area ? ` — ${order.delivery_area}` : ''}
+          </p>
         </div>
       </div>
 

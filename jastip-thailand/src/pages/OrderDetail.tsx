@@ -10,6 +10,7 @@ import type { OrderStatus, SettingsRow } from '../types/database'
 import { useToast } from '../components/ToastProvider'
 import WhatsAppModal from '../components/WhatsAppModal'
 import { shortOrderId } from '../utils/invoice'
+import { getDeliveryMethodLabel } from '../config/delivery'
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>()
@@ -192,6 +193,7 @@ export default function OrderDetail() {
               <Row label="Base Rate" value={formatIDR(order.base_exchange_rate)} />
               <Row label="Margin" value={`${order.currency_margin}%`} />
               <Row label="Applied Rate" value={`${formatIDR(order.applied_exchange_rate)}/฿`} />
+              <Row label="Delivery Method" value={getDeliveryMethodLabel(order.delivery_method)} />
               <Row label="Delivery Area" value={order.delivery_area ?? '—'} />
             </div>
           </Card>
