@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, UserPlus } from 'lucide-react'
+import { ArrowLeft, Bike, Car, Plus, ShoppingBag, Trash2, Truck, UserPlus } from 'lucide-react'
 import { Button, Card, Input, PageLoader, Select, TextArea } from '../components/ui'
 import { getSettings } from '../services/settings'
 import { listDeliveryZones } from '../services/deliveryZones'
@@ -9,21 +9,42 @@ import { createOrder, getOrder, updateOrder } from '../services/orders'
 import { calculateAppliedExchangeRate, calculateItemPricing, calculateOrderTotals } from '../utils/pricing'
 import { formatIDR } from '../utils/currency'
 import { ORDER_STATUS_LABELS, ORDER_STATUS_ORDER } from '../types'
-import type { CustomerRow, DeliveryMethod, DeliveryZoneRow, FeeConfiguration, OrderStatus, SettingsRow } from '../types/database'
+import type {
+  CustomerRow,
+  DeliveryMethod,
+  DeliveryZoneRow,
+  FeeConfiguration,
+  OrderStatus,
+  PaymentStatus,
+  PaymentType,
+  ProductCategory,
+  SettingsRow,
+} from '../types/database'
 import { DELIVERY_METHODS, isZoneBased } from '../config/delivery'
+import { PRODUCT_CATEGORIES } from '../config/categories'
+import { PAYMENT_TYPE_DESCRIPTIONS, PAYMENT_TYPE_LABELS } from '../config/payment'
 import { useToast } from '../components/ToastProvider'
+
+const DELIVERY_ICONS: Record<DeliveryMethod, React.ElementType> = {
+  kurir: Truck,
+  grab: Car,
+  gojek: Bike,
+  shopee_instant: ShoppingBag,
+}
 
 interface DraftItem {
   tempId: string
   product_name: string
   product_link: string
+  category: ProductCategory
+  variant: string
   quantity: number
   price_thb: number
   notes: string
 }
 
 function newDraftItem(): DraftItem {
-  return { tempId: Math.random().toString(36).slice(2), product_name: '', product_link: '', quantity: 1, price_thb: 0, notes: '' }
+  return { tempId: Math.random().toString(36).slice(2), product_name: '', product_link: '', category: 'other', variant: '', quantity: 1, price_thb: 0, notes: '' }
 }
 
 interface PricingSnapshot {
@@ -56,6 +77,8 @@ export default function CreateOrder() {
   const [items, setItems] = useState<DraftItem[]>([newDraftItem()])
   const [deliveryZoneId, setDeliveryZoneId] = useState('')
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('kurir')
+  const [paymentType, setPaymentType] = useState<PaymentType>('fp')
+  const [existingPaymentStatus, setExistingPaymentStatus] = useState<PaymentStatus>('pending')
   const [deliveryFeeOverride, setDeliveryFeeOverride] = useState<number | null>(null)
   const [status, setStatus] = useState<OrderStatus>('pending')
   const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -84,6 +107,8 @@ export default function CreateOrder() {
               tempId: it.id,
               product_name: it.product_name,
               product_link: it.product_link ?? '',
+              category: it.category ?? 'other',
+              variant: it.variant ?? '',
               quantity: it.quantity,
               price_thb: it.price_thb,
               notes: it.notes ?? '',
@@ -91,6 +116,8 @@ export default function CreateOrder() {
           )
           const matchedZone = zoneList.find((z) => z.name === order.delivery_area)
           setDeliveryMethod(order.delivery_method ?? 'kurir')
+          setPaymentType(order.payment_type ?? 'fp')
+          setExistingPaymentStatus(order.payment_status ?? 'pending')
           setDeliveryZoneId(matchedZone?.id ?? '')
           if (order.delivery_fee !== order.default_delivery_fee) setDeliveryFeeOverride(order.delivery_fee)
           setStatus(order.status)
@@ -203,6 +230,8 @@ export default function CreateOrder() {
       const orderItems = computedItems.map((it) => ({
         product_name: it.product_name,
         product_link: it.product_link || null,
+        category: it.category,
+        variant: it.variant.trim() || null,
         quantity: it.quantity,
         price_thb: it.price_thb,
         applied_exchange_rate: it.appliedRate,
@@ -222,6 +251,7 @@ export default function CreateOrder() {
         applied_exchange_rate: pricing.appliedRate,
         rounding_rule: pricing.roundingRule,
         fee_configuration: pricing.feeConfig,
+        payment_type: paymentType,
         delivery_method: deliveryMethod,
         delivery_area: activeZone?.name ?? null,
         default_delivery_fee: defaultDeliveryFee,
@@ -358,6 +388,14 @@ export default function CreateOrder() {
                       className="sm:col-span-2"
                     />
                     <Input label="Product Link" value={item.product_link} onChange={(e) => updateItem(item.tempId, { product_link: e.target.value })} className="sm:col-span-2" />
+                    <Select label="Category (admin only)" value={item.category} onChange={(e) => updateItem(item.tempId, { category: e.target.value as ProductCategory })}>
+                      {PRODUCT_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </Select>
+                    <Input label="Variant (warna / ukuran)" value={item.variant} onChange={(e) => updateItem(item.tempId, { variant: e.target.value })} />
                     <Input
                       label="Price (THB) *"
                       type="number"
@@ -387,17 +425,67 @@ export default function CreateOrder() {
             </div>
           </Card>
 
+          {/* Payment */}
+          <Card className="p-5">
+            <h3 className="font-semibold text-charcoal mb-3">Payment</h3>
+            <div role="radiogroup" aria-label="Payment type" className="grid grid-cols-2 gap-2">
+              {(['dp', 'fp'] as PaymentType[]).map((type) => {
+                const selected = paymentType === type
+                const locked = isEdit && (existingPaymentStatus === 'partial' || existingPaymentStatus === 'paid')
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    disabled={locked}
+                    onClick={() => setPaymentType(type)}
+                    className={`text-left rounded-xl border px-4 py-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                      selected ? 'border-gold bg-gold/10 ring-2 ring-gold/40' : 'border-charcoal/15 bg-white hover:border-charcoal/30'
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-charcoal">{PAYMENT_TYPE_LABELS[type]}</p>
+                    <p className="text-xs text-charcoal-soft mt-0.5">{PAYMENT_TYPE_DESCRIPTIONS[type]}</p>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs text-charcoal-soft mt-3">
+              Ini metode pembayaran yang disepakati. Jumlah yang dibayar dicatat lewat tombol Add Payment di Order Detail — status Lunas / DP dihitung otomatis.
+            </p>
+          </Card>
+
           {/* Delivery & meta */}
           <Card className="p-5">
             <h3 className="font-semibold text-charcoal mb-3">Delivery &amp; Status</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Select label="Delivery Method *" value={deliveryMethod} onChange={(e) => { setDeliveryMethod(e.target.value as DeliveryMethod); setDeliveryFeeOverride(null) }}>
-                {DELIVERY_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </Select>
+              <div className="sm:col-span-2">
+                <span className="block text-sm font-medium text-charcoal mb-1.5">Delivery Method *</span>
+                <div role="radiogroup" aria-label="Delivery method" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {DELIVERY_METHODS.map((m) => {
+                    const Icon = DELIVERY_ICONS[m.value]
+                    const selected = deliveryMethod === m.value
+                    return (
+                      <button
+                        key={m.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => {
+                          setDeliveryMethod(m.value)
+                          setDeliveryFeeOverride(null)
+                        }}
+                        className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-sm font-medium transition-colors ${
+                          selected ? 'border-gold bg-gold/10 text-charcoal ring-2 ring-gold/40' : 'border-charcoal/15 bg-white text-charcoal-soft hover:border-charcoal/30'
+                        }`}
+                      >
+                        <Icon size={20} />
+                        {m.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
               {isKurir && (
                 <Select label="Delivery Area *" value={deliveryZoneId} onChange={(e) => { setDeliveryZoneId(e.target.value); setDeliveryFeeOverride(null) }} error={errors.delivery}>
                   <option value="">Select area...</option>

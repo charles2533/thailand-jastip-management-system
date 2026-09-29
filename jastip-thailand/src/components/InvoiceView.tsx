@@ -3,6 +3,7 @@ import type { CustomerRow, OrderItemRow, OrderRow, SettingsRow } from '../types/
 import { formatIDR, formatTHB } from '../utils/currency'
 import { ORDER_STATUS_LABELS } from '../types'
 import { getDeliveryMethodLabel } from '../config/delivery'
+import { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS } from '../config/payment'
 
 interface InvoiceViewProps {
   order: OrderRow
@@ -100,6 +101,28 @@ export default function InvoiceView({ order, customer, items, settings }: Invoic
           <div className="flex items-center justify-between">
             <span className="font-semibold text-charcoal">Grand Total</span>
             <span className="font-bold text-charcoal text-base">{formatIDR(order.grand_total)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <div className="w-full sm:w-64 rounded-xl border border-black/10 p-4 text-sm flex flex-col gap-1.5">
+          <p className="text-xs uppercase tracking-wide text-charcoal-soft mb-1">Payment</p>
+          <div className="flex items-center justify-between">
+            <span className="text-charcoal-soft">Payment Type</span>
+            <span className="text-charcoal">{PAYMENT_TYPE_LABELS[order.payment_type] ?? '-'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-charcoal-soft">Payment Status</span>
+            <span className="text-charcoal font-medium">{PAYMENT_STATUS_LABELS[order.payment_status] ?? '-'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-charcoal-soft">Paid</span>
+            <span className="text-charcoal">{formatIDR(order.paid_amount ?? 0)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-charcoal-soft">Remaining</span>
+            <span className="text-charcoal font-semibold">{formatIDR(order.remaining_amount ?? 0)}</span>
           </div>
         </div>
       </div>

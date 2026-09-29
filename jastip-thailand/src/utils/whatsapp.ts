@@ -1,6 +1,7 @@
 import type { CustomerRow, OrderItemRow, OrderRow } from '../types/database'
 import { formatIDR } from './currency'
 import { getDeliveryMethodLabel } from '../config/delivery'
+import { PAYMENT_STATUS_LABELS, PAYMENT_TYPE_LABELS, PURCHASE_STATUS_WA_LABELS } from '../config/payment'
 
 export const WHATSAPP_TEMPLATE_VARIABLES = [
   '{{customer_name}}',
@@ -13,6 +14,11 @@ export const WHATSAPP_TEMPLATE_VARIABLES = [
   '{{grand_total}}',
   '{{delivery_area}}',
   '{{delivery_method}}',
+  '{{payment_type}}',
+  '{{payment_status}}',
+  '{{paid_amount}}',
+  '{{remaining_amount}}',
+  '{{purchase_status}}',
   '{{address}}',
   '{{phone}}',
   '{{exchange_rate}}',
@@ -20,21 +26,32 @@ export const WHATSAPP_TEMPLATE_VARIABLES = [
 
 export const DEFAULT_WHATSAPP_TEMPLATE = `Halo Kak {{customer_name}} 👋
 
-Berikut detail pesanan Jastip Thailand Kakak:
+Berikut detail pesanan Jastip Thailand Kakak 🇹🇭
 
 🧾 Invoice: {{invoice_number}}
 
-📦 Pesanan:
+📦 PESANAN
 {{items}}
 
+💵 RINCIAN PEMBAYARAN
 Subtotal: {{subtotal}}
 Jastip Fee: {{jastip_fee}}
-Delivery: {{delivery_fee}}
+Biaya Pengiriman: {{delivery_fee}}
 
-💰 Total: {{grand_total}}
+🚚 PENGIRIMAN
+Metode: {{delivery_method}}
+Alamat: {{address}}
 
-📍 Alamat:
-{{address}}
+💰 TOTAL PEMBAYARAN
+{{grand_total}}
+
+💳 STATUS PEMBAYARAN
+Metode: {{payment_type}}
+Status: {{payment_status}}
+Sudah Dibayar: {{paid_amount}}
+Sisa Pembayaran: {{remaining_amount}}
+
+Mohon dicek kembali detail pesanan dan alamat pengirimannya ya Kak 🙏
 
 Terima kasih sudah menggunakan Jastip Thailand kami! 🇹🇭❤️`
 
@@ -45,7 +62,7 @@ export function fillTemplate(template: string, data: Record<string, string>): st
 
 function formatItemsList(items: OrderItemRow[]): string {
   return items
-    .map((item, idx) => `${idx + 1}. ${item.product_name} x${item.quantity} - ${formatIDR(item.total)}`)
+    .map((item, idx) => `${idx + 1}. ${item.product_name}${item.variant ? ` (${item.variant})` : ''} x${item.quantity} - ${formatIDR(item.total)}`)
     .join('\n')
 }
 
@@ -70,6 +87,11 @@ export function generateWhatsAppMessage(
     grand_total: formatIDR(order.grand_total),
     delivery_area: order.delivery_area ?? '-',
     delivery_method: getDeliveryMethodLabel(order.delivery_method),
+    payment_type: PAYMENT_TYPE_LABELS[order.payment_type] ?? '-',
+    payment_status: PAYMENT_STATUS_LABELS[order.payment_status] ?? '-',
+    paid_amount: formatIDR(order.paid_amount ?? 0),
+    remaining_amount: formatIDR(order.remaining_amount ?? 0),
+    purchase_status: PURCHASE_STATUS_WA_LABELS[order.purchase_status] ?? '-',
     address: customer.address,
     phone: customer.phone,
     exchange_rate: `1 THB = ${formatIDR(order.applied_exchange_rate)}`,

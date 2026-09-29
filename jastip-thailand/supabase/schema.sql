@@ -57,21 +57,32 @@ create table if not exists settings (
   }'::jsonb,
   whatsapp_template text not null default 'Halo Kak {{customer_name}} 👋
 
-Berikut detail pesanan Jastip Thailand Kakak:
+Berikut detail pesanan Jastip Thailand Kakak 🇹🇭
 
 🧾 Invoice: {{invoice_number}}
 
-📦 Pesanan:
+📦 PESANAN
 {{items}}
 
+💵 RINCIAN PEMBAYARAN
 Subtotal: {{subtotal}}
 Jastip Fee: {{jastip_fee}}
-Delivery: {{delivery_fee}}
+Biaya Pengiriman: {{delivery_fee}}
 
-💰 Total: {{grand_total}}
+🚚 PENGIRIMAN
+Metode: {{delivery_method}}
+Alamat: {{address}}
 
-📍 Alamat:
-{{address}}
+💰 TOTAL PEMBAYARAN
+{{grand_total}}
+
+💳 STATUS PEMBAYARAN
+Metode: {{payment_type}}
+Status: {{payment_status}}
+Sudah Dibayar: {{paid_amount}}
+Sisa Pembayaran: {{remaining_amount}}
+
+Mohon dicek kembali detail pesanan dan alamat pengirimannya ya Kak 🙏
 
 Terima kasih sudah menggunakan Jastip Thailand kami! 🇹🇭❤️',
   customer_form_template text,
@@ -106,9 +117,18 @@ create table if not exists orders (
   delivery_fee numeric not null default 0,
   grand_total numeric not null default 0,
 
+  -- payment (DP / FP) and purchase tracking
+  payment_type text not null default 'fp' check (payment_type in ('dp','fp')),
+  payment_status text not null default 'pending' check (payment_status in ('pending','partial','paid','refunded')),
+  paid_amount numeric not null default 0 check (paid_amount >= 0),
+  remaining_amount numeric not null default 0 check (remaining_amount >= 0),
+  purchase_status text not null default 'not_purchased' check (purchase_status in ('not_purchased','purchased')),
+  purchased_at timestamptz,
+
   notes text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint orders_paid_lte_total check (paid_amount <= grand_total)
 );
 
 -- ---------------------------------------------------------------
@@ -119,6 +139,9 @@ create table if not exists order_items (
   order_id uuid not null references orders(id) on delete cascade,
   product_name text not null,
   product_link text,
+  category text not null default 'other'
+    check (category in ('beauty_skincare','fashion','shoes','food_snack','souvenir','accessories','electronics','toys_collectibles','other')),
+  variant text,
   quantity integer not null default 1 check (quantity > 0),
   price_thb numeric not null,
   applied_exchange_rate numeric not null,
@@ -127,6 +150,20 @@ create table if not exists order_items (
   total_fee numeric not null,
   total numeric not null,
   notes text,
+  created_at timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------
+-- payments (payment history per order)
+-- ---------------------------------------------------------------
+create table if not exists payments (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references orders(id) on delete cascade,
+  amount numeric not null check (amount > 0),
+  payment_type text not null check (payment_type in ('dp','fp','additional','refund')),
+  payment_method text,
+  notes text,
+  paid_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 
@@ -140,6 +177,9 @@ create index if not exists idx_orders_order_date on orders(order_date);
 create index if not exists idx_order_items_order_id on order_items(order_id);
 create index if not exists idx_customers_name on customers(name);
 create index if not exists idx_customers_phone on customers(phone);
+create index if not exists idx_payments_order_id on payments(order_id);
+create index if not exists idx_orders_payment_status on orders(payment_status);
+create index if not exists idx_orders_purchase_status on orders(purchase_status);
 
 -- ---------------------------------------------------------------
 -- Row Level Security
@@ -152,6 +192,7 @@ alter table delivery_zones enable row level security;
 alter table settings enable row level security;
 alter table orders enable row level security;
 alter table order_items enable row level security;
+alter table payments enable row level security;
 
 drop policy if exists "authenticated_all_customers" on customers;
 create policy "authenticated_all_customers" on customers
@@ -167,6 +208,10 @@ create policy "authenticated_all_settings" on settings
 
 drop policy if exists "authenticated_all_orders" on orders;
 create policy "authenticated_all_orders" on orders
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+drop policy if exists "authenticated_all_payments" on payments;
+create policy "authenticated_all_payments" on payments
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 drop policy if exists "authenticated_all_order_items" on order_items;

@@ -78,6 +78,8 @@ You can deploy via the Netlify CLI (`netlify deploy --prod`) or by connecting th
   - `>= Rp500.000` → 8% of item price (no cap)
   All editable in **Settings → Jastip Fee**.
 - **Delivery fee:** each order has a delivery method — **Kurir** (fee from the zones in **Settings → Delivery**, overridable per order), or **Grab / Gojek / Shopee Instant** (fee typed in manually per order).
+- **Payment (DP / FP):** every order tracks payment type, status (Belum Bayar → DP / Belum Lunas → Lunas, or Refunded), paid and remaining amount. Payments are recorded in the `payments` table via **Order Detail → Add Payment**; the order's paid/remaining/status are always derived from that history.
+- **Purchase flow:** payment status and purchase status are separate. A fully paid order that is not purchased yet shows up under **Orders → Ready to Purchase**, where **Mark as Purchased** stores `purchase_status` and `purchased_at` without touching any amounts.
 - **Customer order form:** **Orders → Customer Form** copies an editable text template (Settings → Customer Form) you can send to customers; it is text only, not automated.
 - **Pricing snapshot:** every order stores the exact base rate, margin, applied rate, rounding rule, and fee configuration used at creation time. Changing Settings later never changes existing orders — only new orders (or duplicated orders, which are explicitly re-priced) use the latest settings.
 

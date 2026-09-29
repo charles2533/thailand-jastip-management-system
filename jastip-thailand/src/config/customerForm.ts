@@ -1,30 +1,44 @@
 /** Default text template the admin can send to customers so they fill in their order. */
 export const DEFAULT_CUSTOMER_FORM_TEMPLATE = `📝 FORM PEMESANAN JASTIP THAILAND 🇹🇭
 
-Silakan isi data di bawah ini lalu kirim balik ya Kak 🙏
+Silakan isi data di bawah ini lalu kirim kembali ya Kak 🙏
 
 👤 DATA PENERIMA
+
 Nama:
 No. WhatsApp:
 Alamat lengkap:
 Kota / Kecamatan:
-Kode pos:
+Kode Pos:
 
 🛍️ PESANAN
-1. Nama produk / link:
-   Jumlah:
-   Catatan (warna / ukuran / varian):
 
-2. Nama produk / link:
-   Jumlah:
-   Catatan (warna / ukuran / varian):
+1.
+Nama produk:
+Link produk:
+Jumlah:
+Warna / ukuran / varian:
+Catatan:
 
-(tambah nomor berikutnya kalau pesanan lebih dari 2)
+2.
+Nama produk:
+Link produk:
+Jumlah:
+Warna / ukuran / varian:
+Catatan:
 
-🚚 PILIHAN PENGIRIMAN (pilih salah satu)
+Tambahkan nomor berikutnya jika pesanan lebih dari 2 produk.
+
+🚚 PILIHAN PENGIRIMAN
+
+Pilih salah satu:
+
 [ ] Grab
 [ ] Gojek
 [ ] Shopee Instant
 [ ] Kurir
 
-Terima kasih! ❤️`
+CATATAN:
+- Harga akan dikonfirmasi setelah produk dan ketersediaannya dicek.
+- Total pembayaran mengikuti harga aktual produk, kurs Jastip, biaya Jastip, dan biaya pengiriman yang berlaku.
+- Pesanan akan diproses sesuai metode pembayaran yang disepakati.`

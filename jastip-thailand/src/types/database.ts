@@ -13,6 +13,24 @@ export type OrderStatus =
 
 export type DeliveryMethod = 'kurir' | 'grab' | 'gojek' | 'shopee_instant'
 
+/** DP = paid part of the total, FP = paid in full. */
+export type PaymentType = 'dp' | 'fp'
+/** 'partial' is internal; the UI shows it as "DP / Belum Lunas". */
+export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'refunded'
+export type PurchaseStatus = 'not_purchased' | 'purchased'
+/** Type of a single row in the payments table. */
+export type PaymentEntryType = 'dp' | 'fp' | 'additional' | 'refund'
+export type ProductCategory =
+  | 'beauty_skincare'
+  | 'fashion'
+  | 'shoes'
+  | 'food_snack'
+  | 'souvenir'
+  | 'accessories'
+  | 'electronics'
+  | 'toys_collectibles'
+  | 'other'
+
 export interface FeeTier {
   label: string
   maxIdr: number | null // null = no upper bound (last tier)
@@ -79,6 +97,12 @@ export interface OrderRow {
   default_delivery_fee: number
   delivery_fee: number
   grand_total: number
+  payment_type: PaymentType
+  payment_status: PaymentStatus
+  paid_amount: number
+  remaining_amount: number
+  purchase_status: PurchaseStatus
+  purchased_at: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -89,6 +113,8 @@ export interface OrderItemRow {
   order_id: string
   product_name: string
   product_link: string | null
+  category: ProductCategory
+  variant: string | null
   quantity: number
   price_thb: number
   applied_exchange_rate: number
@@ -100,6 +126,17 @@ export interface OrderItemRow {
   created_at: string
 }
 
+export interface PaymentRow {
+  id: string
+  order_id: string
+  amount: number
+  payment_type: PaymentEntryType
+  payment_method: string | null
+  notes: string | null
+  paid_at: string
+  created_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -108,6 +145,7 @@ export interface Database {
       settings: { Row: SettingsRow; Insert: Partial<SettingsRow>; Update: Partial<SettingsRow> }
       orders: { Row: OrderRow; Insert: Partial<OrderRow>; Update: Partial<OrderRow> }
       order_items: { Row: OrderItemRow; Insert: Partial<OrderItemRow>; Update: Partial<OrderItemRow> }
+      payments: { Row: PaymentRow; Insert: Partial<PaymentRow>; Update: Partial<PaymentRow> }
     }
   }
 }

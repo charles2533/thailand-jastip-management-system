@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, Clock, CheckCircle2, Wallet, Percent, Truck, Boxes, BadgeCheck } from 'lucide-react'
+import { Package, Clock, CheckCircle2, Wallet, Percent, Truck, Boxes, BadgeCheck, Hourglass, CreditCard, ShoppingCart, PackageCheck } from 'lucide-react'
 import { Card, PageLoader, StatusBadge } from '../components/ui'
 import { getDashboardStats, getRecentOrders, type DashboardStats, type OrderListItem } from '../services/orders'
 import { formatIDR } from '../utils/currency'
@@ -71,6 +71,17 @@ export default function Dashboard() {
         <StatCard icon={Percent} label="Total Jastip Fee" value={formatIDR(stats.totalJastipFee)} tone="gold" />
         <StatCard icon={Truck} label="Total Delivery Fee" value={formatIDR(stats.totalDeliveryFee)} />
         <StatCard icon={Boxes} label="Total Items" value={String(stats.totalItems)} />
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold text-charcoal mb-3">Payment &amp; Purchasing</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          <StatCard icon={Hourglass} label="Belum Bayar" value={String(stats.pendingPayment)} />
+          <StatCard icon={CreditCard} label="DP / Belum Lunas" value={String(stats.partialPayment)} tone="gold" />
+          <StatCard icon={BadgeCheck} label="Lunas / FP" value={String(stats.paidPayment)} tone="jade" />
+          <StatCard icon={ShoppingCart} label="Ready to Purchase" value={String(stats.readyToPurchase)} tone="gold" />
+          <StatCard icon={PackageCheck} label="Purchased" value={String(stats.purchased)} tone="jade" />
+        </div>
       </div>
 
       <Card>

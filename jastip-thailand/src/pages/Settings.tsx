@@ -5,7 +5,7 @@ import { getSettings, updateSettings } from '../services/settings'
 import { createDeliveryZone, deleteDeliveryZone, listDeliveryZones, updateDeliveryZone } from '../services/deliveryZones'
 import { calculateAppliedExchangeRate, ROUNDING_RULES } from '../utils/pricing'
 import { formatIDR } from '../utils/currency'
-import { WHATSAPP_TEMPLATE_VARIABLES, generateWhatsAppMessage, copyToClipboard } from '../utils/whatsapp'
+import { WHATSAPP_TEMPLATE_VARIABLES, DEFAULT_WHATSAPP_TEMPLATE, generateWhatsAppMessage, copyToClipboard } from '../utils/whatsapp'
 import { DEFAULT_CUSTOMER_FORM_TEMPLATE } from '../config/customerForm'
 import type { DeliveryZoneRow, FeeConfiguration, FeeTier, SettingsRow } from '../types/database'
 import { useToast } from '../components/ToastProvider'
@@ -402,6 +402,11 @@ function WhatsAppTab({ settings, onSaved }: { settings: SettingsRow; onSaved: (s
     grand_total: 300000,
     delivery_area: 'Surabaya area lainnya',
     delivery_method: 'kurir',
+    payment_type: 'dp',
+    payment_status: 'partial',
+    paid_amount: 100000,
+    remaining_amount: 200000,
+    purchase_status: 'not_purchased',
     applied_exchange_rate: settings.base_exchange_rate,
   } as any
   const sampleCustomer = { name: 'Kak Dewi', address: 'Jl. Contoh No. 1, Surabaya', phone: '08123456789' } as any
@@ -433,9 +438,14 @@ function WhatsAppTab({ settings, onSaved }: { settings: SettingsRow; onSaved: (s
             </span>
           ))}
         </div>
-        <Button className="w-fit mt-4" onClick={save} loading={saving}>
-          Save Template
-        </Button>
+        <div className="flex flex-wrap gap-2 mt-4">
+          <Button onClick={save} loading={saving}>
+            Save Template
+          </Button>
+          <Button variant="ghost" onClick={() => setTemplate(DEFAULT_WHATSAPP_TEMPLATE)}>
+            Reset to Default
+          </Button>
+        </div>
       </Card>
       <Card className="p-5 h-fit">
         <h3 className="font-semibold text-charcoal mb-3">Preview (sample data)</h3>
